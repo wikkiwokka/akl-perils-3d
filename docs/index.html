@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AKL Perils 3D — Auckland building stock vs flood hazard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<link href="style.css" rel="stylesheet" />
+</head>
+<body>
+
+<div id="map"></div>
+
+<aside class="panel">
+  <div class="kicker">Open-data proof of concept</div>
+  <h1>AKL&nbsp;PERILS&nbsp;3D <span class="thin">/ isthmus</span></h1>
+  <p class="sub">Every building on the Auckland isthmus, extruded from LiDAR
+  (DSM&nbsp;−&nbsp;DEM), against Auckland Council's published flood hazard layers.</p>
+
+  <div class="section">
+    <div class="label">Colour buildings by</div>
+    <div class="choice" role="radiogroup" aria-label="Colour mode">
+      <label><input type="radio" name="mode" value="height" checked /> Height (storeys)</label>
+      <label><input type="radio" name="mode" value="risk" /> Flood exposure</label>
+    </div>
+    <div id="legend-height" class="legend">
+      <div class="ramp"></div>
+      <div class="ramp-labels"><span>1 storey</span><span>10</span><span>20+</span></div>
+    </div>
+    <div id="legend-risk" class="legend" style="display:none">
+      <div class="row"><span class="swatch" style="background:var(--plain)"></span> In flood plain (1% AEP)</div>
+      <div class="row"><span class="swatch" style="background:var(--prone)"></span> In flood prone area</div>
+      <div class="row"><span class="swatch" style="background:var(--flow)"></span> Near overland flow path</div>
+      <div class="row"><span class="swatch" style="background:var(--none)"></span> No flagged exposure</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">Hazard overlays</div>
+    <div class="choice">
+      <label><input type="checkbox" id="toggle-flood" checked /> Flood plains &amp; flow paths</label>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">View</div>
+    <button class="pill" id="tilt">Toggle 2D / 3D</button>
+  </div>
+</aside>
+
+<div class="readout" id="readout">
+  <div class="title">Building readout</div>
+  <div class="idle">hover a building…</div>
+</div>
+
+<div class="footer">
+  <div class="card">
+    Educational demonstration only — not for property, lending or insurance
+    decisions. Heights are LiDAR-derived estimates; hazard layers are Auckland
+    Council's published models and carry their own limitations.
+  </div>
+  <div class="card">
+    Data: <a href="https://data.linz.govt.nz" target="_blank" rel="noopener">Toitū Te Whenua LINZ</a> (building outlines, elevation) ·
+    <a href="https://data-aucklandcouncil.opendata.arcgis.com" target="_blank" rel="noopener">Auckland Council</a> (flood hazard) — CC-BY 4.0 ·
+    Basemap © <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>,
+    © OpenStreetMap contributors ·
+    <a href="https://github.com/wikkiwokka/akl-perils-3d" target="_blank" rel="noopener">Source on GitHub</a> ·
+    <a href="demo.html">Demo with synthetic data</a>
+  </div>
+</div>
+
+<div class="overlay-notice" id="no-tiles" style="display:none">
+  <div class="box">
+    <p><strong>Tiles not found.</strong></p>
+    <p style="margin-top:10px">This page expects <code>tiles/akl.pmtiles</code>,
+    which is produced by the pipeline. Run <code>make all</code>, then
+    <code>make serve</code>, or push the built tiles to GitHub Pages.</p>
+    <p style="margin-top:10px">To preview the interface with synthetic data,
+    open the <a href="demo.html">demo page</a>.</p>
+  </div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
+<script src="app.js"></script>
+<script>
+  // Boot the shared app against the real PMTiles archive.
+  fetch("tiles/akl.pmtiles", { method: "HEAD" })
+    .then((r) => {
+      if (!r.ok) throw new Error("missing");
+      AKL.boot({ mode: "pmtiles", url: "tiles/akl.pmtiles" });
+    })
+    .catch(() => {
+      document.getElementById("no-tiles").style.display = "flex";
+      AKL.boot({ mode: "basemap-only" });
+    });
+</script>
+</body>
+</html>

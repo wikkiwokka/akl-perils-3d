@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AKL Perils 3D — synthetic demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<link href="style.css" rel="stylesheet" />
+</head>
+<body>
+
+<div id="map"></div>
+<div class="banner">SYNTHETIC DEMO DATA — interface preview only</div>
+
+<aside class="panel">
+  <div class="kicker">Open-data proof of concept · demo</div>
+  <h1>AKL&nbsp;PERILS&nbsp;3D <span class="thin">/ demo</span></h1>
+  <p class="sub">This page renders <strong>procedurally generated</strong> buildings
+  and hazard shapes so the interface can be previewed before the real pipeline
+  runs. Nothing here describes any real property.</p>
+
+  <div class="section">
+    <div class="label">Colour buildings by</div>
+    <div class="choice" role="radiogroup" aria-label="Colour mode">
+      <label><input type="radio" name="mode" value="height" checked /> Height (storeys)</label>
+      <label><input type="radio" name="mode" value="risk" /> Flood exposure</label>
+    </div>
+    <div id="legend-height" class="legend">
+      <div class="ramp"></div>
+      <div class="ramp-labels"><span>1 storey</span><span>10</span><span>20+</span></div>
+    </div>
+    <div id="legend-risk" class="legend" style="display:none">
+      <div class="row"><span class="swatch" style="background:var(--plain)"></span> In flood plain (synthetic)</div>
+      <div class="row"><span class="swatch" style="background:var(--prone)"></span> In flood prone area (synthetic)</div>
+      <div class="row"><span class="swatch" style="background:var(--flow)"></span> Near overland flow path (synthetic)</div>
+      <div class="row"><span class="swatch" style="background:var(--none)"></span> No flagged exposure</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">Hazard overlays</div>
+    <div class="choice">
+      <label><input type="checkbox" id="toggle-flood" checked /> Flood shapes &amp; flow paths</label>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">View</div>
+    <button class="pill" id="tilt">Toggle 2D / 3D</button>
+  </div>
+</aside>
+
+<div class="readout" id="readout">
+  <div class="title">Building readout</div>
+  <div class="idle">hover a building…</div>
+</div>
+
+<div class="footer">
+  <div class="card">
+    Synthetic data for layout/interaction preview. The production page draws on
+    LINZ and Auckland Council open data — see <a href="index.html">index</a>.
+  </div>
+  <div class="card">
+    Basemap © <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>,
+    © OpenStreetMap contributors ·
+    <a href="https://github.com/wikkiwokka/akl-perils-3d" target="_blank" rel="noopener">Source on GitHub</a>
+  </div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
+<script src="app.js"></script>
+<script>
+(() => {
+  // ---- deterministic pseudo-random (so the demo looks the same every load)
+  let seed = 42;
+  const rnd = () => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed / 2147483648;
+  };
+
+  const CX = 174.78, CY = -36.885;          // demo centre
+  const M = 1 / 111320;                      // ~ degrees per metre (lat)
+  const MX = M / Math.cos((CY * Math.PI) / 180);
+
+  // ---- synthetic "stream" polyline running NW -> SE through the patch
+  const stream = [];
+  for (let t = 0; t <= 1.001; t += 0.05) {
+    stream.push([
+      CX + (-1300 + 2600 * t) * MX + Math.sin(t * 9) * 140 * MX,
+      CY + (900 - 1800 * t) * M + Math.cos(t * 7) * 90 * M,
+    ]);
+  }
+
+  const distToStream = (x, y) => {
+    let d = Infinity;
+    for (const [sx, sy] of stream) {
+      const dx = (x - sx) / MX, dy = (y - sy) / M;
+      d = Math.min(d, Math.hypot(dx, dy));
+    }
+    return d; // metres-ish
+  };
+
+  // ---- flood shapes: a buffer band round the stream + two ponding blobs
+  const band = (w) => ({
+    type: "Feature",
+    properties: { layer_key: "flood_plains" },
+    geometry: {
+      type: "Polygon",
+      coordinates: [[
+        ...stream.map(([x, y]) => [x, y + w * M]),
+        ...[...stream].reverse().map(([x, y]) => [x, y - w * M]),
+        [stream[0][0], stream[0][1] + w * M],
+      ]],
+    },
+  });
+  const blob = (cx, cy, r, key) => {
+    const ring = [];
+    for (let a = 0; a <= 2 * Math.PI + 0.01; a += Math.PI / 14) {
+      const rr = r * (0.75 + 0.35 * Math.abs(Math.sin(a * 2.3)));
+      ring.push([cx + Math.cos(a) * rr * MX, cy + Math.sin(a) * rr * M]);
+    }
+    return { type: "Feature", properties: { layer_key: key },
+             geometry: { type: "Polygon", coordinates: [ring] } };
+  };
+  const flowLine = {
+    type: "Feature",
+    properties: { layer_key: "overland_flow" },
+    geometry: { type: "LineString", coordinates: stream },
+  };
+
+  const flood = {
+    type: "FeatureCollection",
+    features: [
+      band(120),
+      blob(CX - 700 * MX, CY - 350 * M, 220, "flood_prone"),
+      blob(CX + 850 * MX, CY + 420 * M, 180, "flood_prone"),
+      flowLine,
+    ],
+  };
+
+  // ---- synthetic buildings on a jittered grid, denser near the centre
+  const buildings = { type: "FeatureCollection", features: [] };
+  const half = 1250; // metres each side
+  for (let gx = -half; gx < half; gx += 38) {
+    for (let gy = -half; gy < half; gy += 34) {
+      if (rnd() < 0.32) continue;                  // gaps: parks, roads
+      const x = CX + (gx + (rnd() - 0.5) * 14) * MX;
+      const y = CY + (gy + (rnd() - 0.5) * 12) * M;
+      const w = (7 + rnd() * 12) * MX;             // footprint size
+      const h = (6 + rnd() * 10) * M;
+
+      const dCentre = Math.hypot(gx, gy);
+      let storeys = 1 + Math.floor(rnd() * 2);
+      if (dCentre < 320 && rnd() < 0.5) storeys = 4 + Math.floor(rnd() * 14);
+      else if (dCentre < 700 && rnd() < 0.25) storeys = 3 + Math.floor(rnd() * 4);
+      const height = +(storeys * 3 + rnd() * 1.5).toFixed(1);
+
+      const d = distToStream(x, y);
+      let risk = "none";
+      if (d < 120) risk = "flood_plain";
+      else if (d < 165) risk = "overland_flow";
+      else if (rnd() < 0.035) risk = "flood_prone";
+
+      buildings.features.push({
+        type: "Feature",
+        properties: {
+          height_m: height, storeys, risk,
+          flood_plain: risk === "flood_plain",
+          flood_prone: risk === "flood_prone",
+          overland_flow: risk === "overland_flow",
+          height_source: "synthetic", lidar_survey: "synthetic",
+        },
+        geometry: {
+          type: "Polygon",
+          coordinates: [[
+            [x - w / 2, y - h / 2], [x + w / 2, y - h / 2],
+            [x + w / 2, y + h / 2], [x - w / 2, y + h / 2],
+            [x - w / 2, y - h / 2],
+          ]],
+        },
+      });
+    }
+  }
+
+  AKL.boot({ mode: "geojson", buildings, flood });
+})();
+</script>
+</body>
+</html>

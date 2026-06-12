@@ -1,0 +1,249 @@
+/* AKL Perils 3D — shared UI styles
+   Palette "harbour & scoria":
+     --ink     #0E1B25  deep Waitematā ink (panels)
+     --paper   #E9EEF2  panel text
+     --sand    #D9CBAA  unflagged building / low height
+     --ochre   #C98A3D  mid height
+     --scoria  #A63D2A  high rise (Auckland's volcanic red)
+     --plain   #1D6FB0  flood plain
+     --prone   #3FA7A0  flood prone area
+     --flow    #7C5FBE  overland flow path
+*/
+
+:root {
+  --ink: #0e1b25;
+  --ink-85: rgba(14, 27, 37, 0.88);
+  --paper: #e9eef2;
+  --muted: #93a4b1;
+  --hairline: rgba(233, 238, 242, 0.16);
+  --sand: #d9cbaa;
+  --ochre: #c98a3d;
+  --scoria: #a63d2a;
+  --plain: #1d6fb0;
+  --prone: #3fa7a0;
+  --flow: #7c5fbe;
+  --none: #c9bfae;
+  --radius: 10px;
+  --font-display: "Archivo", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font-display);
+  color: var(--paper);
+  background: var(--ink);
+  overflow: hidden;
+}
+
+#map { position: absolute; inset: 0; }
+
+/* ---------- control card ---------- */
+.panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 304px;
+  max-height: calc(100% - 96px);
+  overflow-y: auto;
+  background: var(--ink-85);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 18px 18px 14px;
+  z-index: 5;
+}
+
+.panel h1 {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+
+.panel h1 .thin { font-weight: 400; color: var(--muted); }
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.sub {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.45;
+  margin-top: 8px;
+}
+
+.section {
+  border-top: 1px solid var(--hairline);
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+.section .label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.choice { display: flex; flex-direction: column; gap: 6px; }
+
+.choice label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.choice input { accent-color: var(--ochre); }
+
+/* legend */
+.legend { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+.legend .row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; flex: 0 0 auto; }
+.ramp {
+  height: 10px; border-radius: 5px; margin: 4px 0 2px;
+  background: linear-gradient(90deg, var(--sand), var(--ochre), var(--scoria));
+}
+.ramp-labels {
+  display: flex; justify-content: space-between;
+  font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+}
+
+/* ---------- instrument readout (signature element) ---------- */
+.readout {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  min-width: 230px;
+  background: var(--ink-85);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  z-index: 5;
+}
+
+.readout .title {
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 4px;
+}
+
+.readout .kv { display: flex; justify-content: space-between; gap: 16px; }
+.readout .kv .k { color: var(--muted); }
+.readout .kv .v { color: var(--paper); }
+.readout .v.risk-flood_plain { color: #6db4e8; }
+.readout .v.risk-flood_prone { color: #7fd0ca; }
+.readout .v.risk-overland_flow { color: #b3a0e6; }
+.readout .v.risk-none { color: var(--sand); }
+.readout .idle { color: var(--muted); }
+
+/* ---------- footer ---------- */
+.footer {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 10.5px;
+  color: var(--muted);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.footer a { color: var(--muted); pointer-events: auto; }
+.footer .card {
+  background: var(--ink-85);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 6px 10px;
+  pointer-events: auto;
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+/* ---------- notices / banner ---------- */
+.banner {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ochre);
+  color: #1d1405;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 6px 14px;
+  border-radius: 999px;
+  z-index: 6;
+}
+
+.overlay-notice {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 27, 37, 0.8);
+  z-index: 20;
+}
+
+.overlay-notice .box {
+  background: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 26px 30px;
+  max-width: 460px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.overlay-notice code {
+  font-family: var(--font-mono);
+  background: rgba(233, 238, 242, 0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12.5px;
+}
+
+.overlay-notice a { color: var(--ochre); }
+
+button.pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  background: transparent;
+  color: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+button.pill:hover { border-color: var(--ochre); color: var(--ochre); }
+button.pill:focus-visible { outline: 2px solid var(--ochre); outline-offset: 2px; }
+
+@media (max-width: 720px) {
+  .panel { width: calc(100% - 32px); max-height: 46%; }
+  .readout { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

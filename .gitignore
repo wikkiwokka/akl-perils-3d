@@ -1,0 +1,19 @@
+# Secrets — never commit
+.env
+
+# Data (large, reproducible from open sources)
+data/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+uv.lock
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Built tiles are committed deliberately (needed for GitHub Pages),
+# but exclude any scratch tile output
+docs/tiles/*.tmp
