@@ -17,3 +17,4 @@ Thumbs.db
 # Built tiles are committed deliberately (needed for GitHub Pages),
 # but exclude any scratch tile output
 docs/tiles/*.tmp
+.env
