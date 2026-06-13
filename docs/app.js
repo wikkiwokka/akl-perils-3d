@@ -56,6 +56,7 @@ window.AKL = (() => {
     map.on("load", () => {
       if (opts.mode === "pmtiles") {
         map.addSource("akl", { type: "vector", url: "pmtiles://" + new URL(opts.url, window.location.href).href });
+        hideBasemapBuildings();
         addFloodLayers({ source: "akl", sourceLayer: "flood" });
         addBuildingLayer({ source: "akl", sourceLayer: "buildings" });
       } else if (opts.mode === "geojson") {
@@ -94,6 +95,18 @@ window.AKL = (() => {
       filter: ["==", ["geometry-type"], "LineString"],
       paint: { "line-color": COLORS.flow, "line-width": 1.6, "line-opacity": 0.75 },
     });
+  }
+
+  function hideBasemapBuildings() {
+    // OpenFreeMap "Liberty" renders its own OSM-derived 3D building
+    // extrusions. Hide every fill-extrusion layer that isn't ours so the
+    // basemap buildings don't clash with our LiDAR-derived ones. Matching
+    // by layer type (not hardcoded ids) survives upstream style renames.
+    for (const layer of map.getStyle().layers) {
+      if (layer.type === "fill-extrusion" && layer.id !== "bld") {
+        map.setLayoutProperty(layer.id, "visibility", "none");
+      }
+    }
   }
 
   function addBuildingLayer({ source, sourceLayer }) {
