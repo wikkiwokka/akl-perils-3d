@@ -34,7 +34,25 @@ window.AKL = (() => {
 
   const CENTER = [174.78, -36.885];
 
+  // LINZ Basemaps aerial imagery (XYZ, WebMercatorQuad). Public CC-BY service;
+  // the key is exposed in client JS by design for this free basemap. Swap this
+  // for a LINZ "developer" key (free, request from LINZ) for public-app use.
+  // Get keys at https://basemaps.linz.govt.nz/
+  const LINZ_API_KEY = "c01kv0e1bxwsczjntmek31bdv6t";
+  const LINZ_AERIAL_URL =
+    "https://basemaps.linz.govt.nz/v1/tiles/aerial/WebMercatorQuad/{z}/{x}/{y}.webp?api=" +
+    LINZ_API_KEY;
+
   let map;
+
+  // --- Sentinel-2 satellite swap state ------------------------------------
+  // Set of layer ids that belong to the Liberty base style. Captured once,
+  // right after the style first loads, so the satellite swap can hide exactly
+  // those (and nothing of ours). hideBasemapBuildings() already permanently
+  // hides the basemap's own 3D extrusions; we must NOT resurrect those when
+  // swapping back, so the swap toggles visibility per-id and remembers it.
+  let baseStyleLayerIds = null;
+  let satelliteOn = false;
 
   function boot(opts) {
 
@@ -57,6 +75,8 @@ window.AKL = (() => {
       if (opts.mode === "pmtiles") {
         map.addSource("akl", { type: "vector", url: "pmtiles://" + new URL(opts.url, window.location.href).href });
         hideBasemapBuildings();
+        captureBaseStyleLayers();
+        addSatelliteLayer();
         addFloodLayers({ source: "akl", sourceLayer: "flood" });
         addBuildingLayer({ source: "akl", sourceLayer: "buildings" });
       } else if (opts.mode === "geojson") {
@@ -120,6 +140,59 @@ window.AKL = (() => {
     map.on("styledata", hide);
   }
 
+  // Record the ids of all layers that came from the Liberty base style,
+  // BEFORE we add any of our own (satellite/flood/buildings). These are the
+  // only layers the satellite swap is allowed to toggle.
+  function captureBaseStyleLayers() {
+    baseStyleLayerIds = map.getStyle().layers.map((l) => l.id);
+  }
+
+  // Add the LINZ aerial imagery as a hidden raster layer beneath the buildings.
+  function addSatelliteLayer() {
+    map.addSource("s2", {
+      type: "raster",
+      tiles: [LINZ_AERIAL_URL],
+      tileSize: 256,
+      attribution:
+        '© <a href="https://www.linz.govt.nz/linz-copyright">LINZ CC BY 4.0</a> © Imagery Basemap contributors',
+    });
+    map.addLayer({
+      id: "s2-raster",
+      type: "raster",
+      source: "s2",
+      layout: { visibility: "none" },
+      paint: { "raster-opacity": 1 },
+    });
+  }
+
+  // Show/hide every Liberty base-style layer. Skips any layer hideBasemap-
+  // Buildings() already turned off, so swapping back doesn't resurrect the
+  // basemap's clashing 3D buildings.
+  function setBaseStyleVisible(visible) {
+    if (!baseStyleLayerIds) return;
+    const vis = visible ? "visible" : "none";
+    for (const id of baseStyleLayerIds) {
+      if (!map.getLayer(id)) continue;
+      // Don't re-show the basemap extrusions we permanently hid.
+      const layer = map.getStyle().layers.find((l) => l.id === id);
+      if (visible && layer && layer.type === "fill-extrusion" && id !== "bld") {
+        continue;
+      }
+      map.setLayoutProperty(id, "visibility", vis);
+    }
+  }
+
+  // The single swap toggle: Liberty <-> Sentinel-2. Our buildings + flood
+  // stay visible in both modes.
+  function toggleSatellite() {
+    satelliteOn = !satelliteOn;
+    if (map.getLayer("s2-raster")) {
+      map.setLayoutProperty("s2-raster", "visibility", satelliteOn ? "visible" : "none");
+    }
+    setBaseStyleVisible(!satelliteOn);
+    return satelliteOn;
+  }
+
   function addBuildingLayer({ source, sourceLayer }) {
     const sl = sourceLayer ? { "source-layer": sourceLayer } : {};
     map.addLayer({
@@ -159,6 +232,15 @@ window.AKL = (() => {
       tilt.addEventListener("click", () => {
         const flat = map.getPitch() > 5;
         map.easeTo({ pitch: flat ? 0 : 55, bearing: flat ? 0 : -15, duration: 600 });
+      });
+
+    const sat = document.getElementById("satellite");
+    if (sat)
+      sat.addEventListener("click", () => {
+        const on = toggleSatellite();
+        sat.classList.toggle("active", on);
+        sat.textContent = on ? "Map basemap" : "Aerial imagery";
+        sat.setAttribute("aria-pressed", String(on));
       });
   }
 
