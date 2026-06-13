@@ -1,6 +1,9 @@
 /* AKL Perils 3D — shared map application.
  * Used by index.html (PMTiles) and demo.html (inline synthetic GeoJSON).
  */
+const protocol =  new pmtiles.Protocol();
+maplibregl.addProtocol("pmtiles", protocol.tile);
+
 
 window.AKL = (() => {
   const COLORS = {
@@ -34,6 +37,7 @@ window.AKL = (() => {
   let map;
 
   function boot(opts) {
+
     map = new maplibregl.Map({
       container: "map",
       style: "https://tiles.openfreemap.org/styles/liberty",
@@ -44,13 +48,14 @@ window.AKL = (() => {
       maxPitch: 70,
       attributionControl: false,
     });
+
+    window.__map = map;
+
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
 
     map.on("load", () => {
       if (opts.mode === "pmtiles") {
-        const protocol = new pmtiles.Protocol();
-        maplibregl.addProtocol("pmtiles", protocol.tile);
-        map.addSource("akl", { type: "vector", url: "pmtiles://" + opts.url });
+        map.addSource("akl", { type: "vector", url: "pmtiles://" + window.location.origin + "/" + opts.url });
         addFloodLayers({ source: "akl", sourceLayer: "flood" });
         addBuildingLayer({ source: "akl", sourceLayer: "buildings" });
       } else if (opts.mode === "geojson") {

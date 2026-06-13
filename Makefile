@@ -29,7 +29,7 @@ tiles:
 	$(PY) -m pipeline.make_tiles
 
 serve:
-	cd docs && $(PY) -m http.server 8000
+	$(PY) -m pipeline.serve
 
 doctor:
 	$(PY) -m pipeline.doctor
