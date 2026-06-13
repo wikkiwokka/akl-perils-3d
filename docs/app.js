@@ -99,14 +99,25 @@ window.AKL = (() => {
 
   function hideBasemapBuildings() {
     // OpenFreeMap "Liberty" renders its own OSM-derived 3D building
-    // extrusions. Hide every fill-extrusion layer that isn't ours so the
-    // basemap buildings don't clash with our LiDAR-derived ones. Matching
-    // by layer type (not hardcoded ids) survives upstream style renames.
-    for (const layer of map.getStyle().layers) {
-      if (layer.type === "fill-extrusion" && layer.id !== "bld") {
-        map.setLayoutProperty(layer.id, "visibility", "none");
+    // extrusions (layer "building-3d" today). Hide every fill-extrusion
+    // that isn't ours so they don't clash with our LiDAR buildings.
+    // Matching by layer type (not a hardcoded id) survives upstream
+    // renames. The basemap style loads over the network, so its
+    // extrusion layers may not exist yet when this first runs — that
+    // race is why it worked locally but not on GitHub Pages. So we retry
+    // on styledata until at least one layer is hidden, then stop.
+    const hide = () => {
+      let hidden = false;
+      for (const layer of map.getStyle().layers) {
+        if (layer.type === "fill-extrusion" && layer.id !== "bld") {
+          map.setLayoutProperty(layer.id, "visibility", "none");
+          hidden = true;
+        }
       }
-    }
+      if (hidden) map.off("styledata", hide);
+    };
+    hide();
+    map.on("styledata", hide);
   }
 
   function addBuildingLayer({ source, sourceLayer }) {
