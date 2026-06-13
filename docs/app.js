@@ -55,7 +55,7 @@ window.AKL = (() => {
 
     map.on("load", () => {
       if (opts.mode === "pmtiles") {
-        map.addSource("akl", { type: "vector", url: "pmtiles://" + window.location.origin + "/" + opts.url });
+        map.addSource("akl", { type: "vector", url: "pmtiles://" + new URL(opts.url, window.location.href).href });
         addFloodLayers({ source: "akl", sourceLayer: "flood" });
         addBuildingLayer({ source: "akl", sourceLayer: "buildings" });
       } else if (opts.mode === "geojson") {
@@ -64,8 +64,10 @@ window.AKL = (() => {
         addFloodLayers({ source: "flood-geo" });
         addBuildingLayer({ source: "bld-geo" });
       }
-      wireUi();
-      wireReadout();
+      if (opts.mode === "pmtiles" || opts.mode === "geojson") {
+        wireUi();
+        wireReadout();
+      }
     });
   }
 
