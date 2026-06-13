@@ -14,8 +14,13 @@
 <div id="map"></div>
 
 <aside class="panel">
-  <div class="kicker">Open-data proof of concept</div>
-  <h1>AKL&nbsp;PERILS&nbsp;3D <span class="thin">/ isthmus</span></h1>
+  <div class="panel-head">
+    <div>
+      <div class="kicker">Open-data proof of concept</div>
+      <h1>AKL&nbsp;PERILS&nbsp;3D <span class="thin">/ isthmus</span></h1>
+    </div>
+    <button class="panel-collapse" id="panel-collapse" aria-label="Collapse panel" aria-expanded="true">−</button>
+  </div>
   <p class="sub">Every building on the Auckland isthmus, extruded from LiDAR
   (DSM&nbsp;−&nbsp;DEM), against Auckland Council's published flood hazard layers.</p>
 
@@ -30,16 +35,17 @@
       <div class="ramp-labels"><span>1 storey</span><span>10</span><span>20+</span></div>
     </div>
     <div id="legend-risk" class="legend" style="display:none">
-      <div class="row"><span class="swatch" style="background:var(--plain)"></span> In flood plain (1% AEP)</div>
-      <div class="row"><span class="swatch" style="background:var(--prone)"></span> In flood prone area</div>
-      <div class="row"><span class="swatch" style="background:var(--flow)"></span> Near overland flow path</div>
-      <div class="row"><span class="swatch" style="background:var(--none)"></span> No flagged exposure</div>
+      <div class="row"><span class="swatch" style="background:#08306b"></span> In flood plain (1% AEP)</div>
+      <div class="row"><span class="swatch" style="background:#2b7bba"></span> In flood prone area</div>
+      <div class="row"><span class="swatch" style="background:#9ecae1"></span> Near overland flow path</div>
+      <div class="row"><span class="swatch" style="background:#cdc6b8"></span> No flagged exposure</div>
     </div>
   </div>
 
   <div class="section">
-    <div class="label">Hazard overlays</div>
+    <div class="label">Layers</div>
     <div class="choice">
+      <label><input type="checkbox" id="toggle-buildings" checked /> Buildings</label>
       <label><input type="checkbox" id="toggle-flood" checked /> Flood plains &amp; flow paths</label>
     </div>
   </div>
@@ -47,7 +53,7 @@
   <div class="section">
     <div class="label">View</div>
     <button class="pill" id="tilt">Toggle 2D / 3D</button>
-    <button class="pill" id="satellite" aria-pressed="false">Satellite basemap</button>
+    <button class="pill" id="satellite" aria-pressed="false">Aerial imagery</button>
   </div>
 </aside>
 
@@ -58,15 +64,18 @@
 
 <div class="footer">
   <div class="card">
+    <button class="card-dismiss" aria-label="Dismiss">×</button>
     Educational demonstration only — not for property, lending or insurance
     decisions. Heights are LiDAR-derived estimates; hazard layers are Auckland
     Council's published models and carry their own limitations.
   </div>
   <div class="card">
+    <button class="card-dismiss" aria-label="Dismiss">×</button>
     Data: <a href="https://data.linz.govt.nz" target="_blank" rel="noopener">Toitū Te Whenua LINZ</a> (building outlines, elevation) ·
     <a href="https://data-aucklandcouncil.opendata.arcgis.com" target="_blank" rel="noopener">Auckland Council</a> (flood hazard) — CC-BY 4.0 ·
     Basemap © <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>,
     © OpenStreetMap contributors ·
+    Aerial © <a href="https://www.linz.govt.nz/linz-copyright" target="_blank" rel="noopener">LINZ CC BY 4.0</a> ·
     <a href="https://github.com/wikkiwokka/akl-perils-3d" target="_blank" rel="noopener">Source on GitHub</a> ·
     <a href="demo.html">Demo with synthetic data</a>
   </div>

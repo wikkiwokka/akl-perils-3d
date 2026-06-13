@@ -14,6 +14,13 @@ window.AKL = (() => {
     prone: "#3fa7a0",
     flow: "#7c5fbe",
     none: "#c9bfae",
+    // Flood-severity ramp (sequential blue: darker = more severe). Used to
+    // colour building footprints by exposure so the map reads as a hazard
+    // gradient rather than four unrelated categories.
+    sev_plain: "#08306b",  // in flood plain (1% AEP) — most severe
+    sev_prone: "#2b7bba",  // in flood prone area
+    sev_flow: "#9ecae1",   // near overland flow path
+    sev_none: "#cdc6b8",   // no flagged exposure — neutral grey, recedes
   };
 
   const HEIGHT_COLOR = [
@@ -26,10 +33,10 @@ window.AKL = (() => {
 
   const RISK_COLOR = [
     "match", ["get", "risk"],
-    "flood_plain", COLORS.plain,
-    "flood_prone", COLORS.prone,
-    "overland_flow", COLORS.flow,
-    COLORS.none,
+    "flood_plain", COLORS.sev_plain,
+    "flood_prone", COLORS.sev_prone,
+    "overland_flow", COLORS.sev_flow,
+    COLORS.sev_none,
   ];
 
   const CENTER = [174.78, -36.885];
@@ -68,6 +75,8 @@ window.AKL = (() => {
     });
 
     window.__map = map;
+
+    wireChrome();
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
 
@@ -208,6 +217,26 @@ window.AKL = (() => {
     });
   }
 
+  // Panel collapse + footer-card dismiss. Independent of the map, so it runs
+  // for every mode. No persistence — dismissals last the session only.
+  function wireChrome() {
+    const collapseBtn = document.getElementById("panel-collapse");
+    const panel = document.querySelector(".panel");
+    if (collapseBtn && panel) {
+      collapseBtn.addEventListener("click", () => {
+        const collapsed = panel.classList.toggle("collapsed");
+        collapseBtn.textContent = collapsed ? "+" : "−";
+        collapseBtn.setAttribute("aria-expanded", String(!collapsed));
+      });
+    }
+    document.querySelectorAll(".card-dismiss").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const card = btn.closest(".card");
+        if (card) card.classList.add("is-dismissed");
+      });
+    });
+  }
+
   function wireUi() {
     document.querySelectorAll('input[name="mode"]').forEach((el) =>
       el.addEventListener("change", (e) => {
@@ -225,6 +254,13 @@ window.AKL = (() => {
         ["flood-fill", "flood-line"].forEach((id) => {
           if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", vis);
         });
+      });
+
+    const bldToggle = document.getElementById("toggle-buildings");
+    if (bldToggle)
+      bldToggle.addEventListener("change", (e) => {
+        const vis = e.target.checked ? "visible" : "none";
+        if (map.getLayer("bld")) map.setLayoutProperty("bld", "visibility", vis);
       });
 
     const tilt = document.getElementById("tilt");

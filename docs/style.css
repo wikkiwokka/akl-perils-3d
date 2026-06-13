@@ -239,6 +239,54 @@ button.pill {
 button.pill:hover { border-color: var(--ochre); color: var(--ochre); }
 button.pill:focus-visible { outline: 2px solid var(--ochre); outline-offset: 2px; }
 
+/* ---------- collapse / dismiss controls ---------- */
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.panel-collapse {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  margin-top: 2px;
+}
+.panel-collapse:hover { border-color: var(--ochre); color: var(--ochre); }
+.panel-collapse:focus-visible { outline: 2px solid var(--ochre); outline-offset: 2px; }
+
+.panel.collapsed { padding-bottom: 14px; }
+.panel.collapsed .sub,
+.panel.collapsed .section { display: none; }
+.panel.collapsed .panel-head { align-items: center; }
+
+.footer .card { position: relative; padding-right: 24px; }
+.card-dismiss {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+.card-dismiss:hover { color: var(--ochre); }
+.card-dismiss:focus-visible { outline: 1px solid var(--ochre); outline-offset: 1px; }
+
+.is-dismissed { display: none !important; }
+
 @media (max-width: 720px) {
   .panel { width: calc(100% - 32px); max-height: 46%; }
   .readout { display: none; }
