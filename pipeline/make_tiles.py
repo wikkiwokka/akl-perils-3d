@@ -1,8 +1,10 @@
 """Build the PMTiles archive with tippecanoe.
 
-One archive, two named layers:
+One archive, up to three named layers:
   buildings — polygons with height/risk attributes (z11–z16)
   flood     — merged hazard polygons/lines (z10–z16)
+  change    — AlphaEarth change polygons inside flood zones (z10–z16),
+              included only if pipeline.alphaearth_flood_join has been run.
 
 tippecanoe must be on PATH (built from source — see README).
 """
@@ -11,6 +13,7 @@ import shutil
 import subprocess
 
 from pipeline import config as C
+from pipeline.alphaearth_flood_join import CHANGE_FLOOD_GEOJSONL
 from pipeline.util import die, log
 
 
@@ -34,6 +37,17 @@ def main() -> None:
         "-L", f"buildings:{C.BUILDINGS_GEOJSONL}",
         "-L", f"flood:{C.FLOOD_MERGED_GEOJSONL}",
     ]
+
+    # The change layer is optional: it only exists after 'make change'. Tiling
+    # it when present means index.html's toggle has data; when absent the rest
+    # of the map is unaffected.
+    if CHANGE_FLOOD_GEOJSONL.exists() and CHANGE_FLOOD_GEOJSONL.stat().st_size > 0:
+        cmd += ["-L", f"change:{CHANGE_FLOOD_GEOJSONL}"]
+        log(f"Including change layer: {CHANGE_FLOOD_GEOJSONL.name}")
+    else:
+        log("No change layer found (run 'make change' to add it) — "
+            "building buildings + flood only.")
+
     log(" ".join(cmd))
     subprocess.run(cmd, check=True)
 

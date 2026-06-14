@@ -21,6 +21,10 @@ window.AKL = (() => {
     sev_prone: "#2b7bba",  // in flood prone area
     sev_flow: "#9ecae1",   // near overland flow path
     sev_none: "#cdc6b8",   // no flagged exposure — neutral grey, recedes
+    // AlphaEarth "change inside a flood zone" polygons. A warm outline that
+    // sits apart from the cool flood ramp so it reads as an alert overlay.
+    change_line: "#e85d2f",
+    change_fill: "#f08a5d",
   };
 
   const HEIGHT_COLOR = [
@@ -52,14 +56,14 @@ window.AKL = (() => {
 
   let map;
 
-  // --- Sentinel-2 satellite swap state ------------------------------------
+  // --- LINZ aerial imagery swap state -------------------------------------
   // Set of layer ids that belong to the Liberty base style. Captured once,
-  // right after the style first loads, so the satellite swap can hide exactly
+  // right after the style first loads, so the aerial swap can hide exactly
   // those (and nothing of ours). hideBasemapBuildings() already permanently
   // hides the basemap's own 3D extrusions; we must NOT resurrect those when
   // swapping back, so the swap toggles visibility per-id and remembers it.
   let baseStyleLayerIds = null;
-  let satelliteOn = false;
+  let aerialOn = false;
 
   function boot(opts) {
 
@@ -87,6 +91,7 @@ window.AKL = (() => {
         captureBaseStyleLayers();
         addSatelliteLayer();
         addFloodLayers({ source: "akl", sourceLayer: "flood" });
+        addChangeLayer({ source: "akl", sourceLayer: "change" });
         addBuildingLayer({ source: "akl", sourceLayer: "buildings" });
       } else if (opts.mode === "geojson") {
         map.addSource("flood-geo", { type: "geojson", data: opts.flood });
@@ -126,6 +131,38 @@ window.AKL = (() => {
     });
   }
 
+  // AlphaEarth change polygons that fall inside a flood hazard zone. Rendered
+  // as a hatched-looking warm overlay above the flood fills but below the 3D
+  // buildings, hidden by default (it's a focused analytical layer, not part of
+  // the default read). Opacity is graduated by change_mean so stronger change
+  // reads darker. Safe to add even when the 'change' source-layer is absent
+  // (no 'make change' run yet) — it simply renders nothing.
+  function addChangeLayer({ source, sourceLayer }) {
+    const sl = sourceLayer ? { "source-layer": sourceLayer } : {};
+    map.addLayer({
+      id: "change-fill",
+      type: "fill",
+      source, ...sl,
+      layout: { visibility: "none" },
+      paint: {
+        "fill-color": COLORS.change_fill,
+        "fill-opacity": [
+          "interpolate", ["linear"],
+          ["coalesce", ["get", "change_mean"], 0.3],
+          0.3, 0.25,
+          0.6, 0.55,
+        ],
+      },
+    });
+    map.addLayer({
+      id: "change-outline",
+      type: "line",
+      source, ...sl,
+      layout: { visibility: "none" },
+      paint: { "line-color": COLORS.change_line, "line-width": 1.2, "line-opacity": 0.9 },
+    });
+  }
+
   function hideBasemapBuildings() {
     // OpenFreeMap "Liberty" renders its own OSM-derived 3D building
     // extrusions (layer "building-3d" today). Hide every fill-extrusion
@@ -158,7 +195,7 @@ window.AKL = (() => {
 
   // Add the LINZ aerial imagery as a hidden raster layer beneath the buildings.
   function addSatelliteLayer() {
-    map.addSource("s2", {
+    map.addSource("aerial", {
       type: "raster",
       tiles: [LINZ_AERIAL_URL],
       tileSize: 256,
@@ -166,9 +203,9 @@ window.AKL = (() => {
         '© <a href="https://www.linz.govt.nz/linz-copyright">LINZ CC BY 4.0</a> © Imagery Basemap contributors',
     });
     map.addLayer({
-      id: "s2-raster",
+      id: "aerial-raster",
       type: "raster",
-      source: "s2",
+      source: "aerial",
       layout: { visibility: "none" },
       paint: { "raster-opacity": 1 },
     });
@@ -191,15 +228,15 @@ window.AKL = (() => {
     }
   }
 
-  // The single swap toggle: Liberty <-> Sentinel-2. Our buildings + flood
-  // stay visible in both modes.
+  // The single swap toggle: Liberty <-> LINZ aerial imagery. Our buildings +
+  // flood stay visible in both modes.
   function toggleSatellite() {
-    satelliteOn = !satelliteOn;
-    if (map.getLayer("s2-raster")) {
-      map.setLayoutProperty("s2-raster", "visibility", satelliteOn ? "visible" : "none");
+    aerialOn = !aerialOn;
+    if (map.getLayer("aerial-raster")) {
+      map.setLayoutProperty("aerial-raster", "visibility", aerialOn ? "visible" : "none");
     }
-    setBaseStyleVisible(!satelliteOn);
-    return satelliteOn;
+    setBaseStyleVisible(!aerialOn);
+    return aerialOn;
   }
 
   function addBuildingLayer({ source, sourceLayer }) {
@@ -261,6 +298,15 @@ window.AKL = (() => {
       bldToggle.addEventListener("change", (e) => {
         const vis = e.target.checked ? "visible" : "none";
         if (map.getLayer("bld")) map.setLayoutProperty("bld", "visibility", vis);
+      });
+
+    const changeToggle = document.getElementById("toggle-change");
+    if (changeToggle)
+      changeToggle.addEventListener("change", (e) => {
+        const vis = e.target.checked ? "visible" : "none";
+        ["change-fill", "change-outline"].forEach((id) => {
+          if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", vis);
+        });
       });
 
     const tilt = document.getElementById("tilt");

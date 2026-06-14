@@ -51,8 +51,25 @@ def main() -> None:
     all_ok &= check("tippecanoe on PATH", shutil.which("tippecanoe") is not None,
                     "see README one-time setup")
 
+    # Earth Engine is only needed for the optional 'make change' stage, so a
+    # failure here is a soft warning — it does not flip all_ok. The check is
+    # twofold: the library imports, and ee.Initialize() finds credentials.
+    ee_hint = ("only needed for 'make change' — install earthengine-api and run "
+               "'earthengine authenticate' (free non-commercial tier)")
+    try:
+        import ee  # noqa: PLC0415
+        try:
+            ee.Initialize()
+            check("Earth Engine authenticated", True)
+        except Exception as e:
+            check("Earth Engine authenticated", False,
+                  f"{ee_hint}; init error: {e}")
+    except Exception:
+        check("Earth Engine library installed", False, ee_hint)
+
     log("\nAll checks passed — run 'make all'." if all_ok
-        else "\nFix the FAIL items above, then re-run 'make doctor'.")
+        else "\nFix the FAIL items above, then re-run 'make doctor'. "
+             "(Earth Engine is optional unless you're running 'make change'.)")
 
 
 if __name__ == "__main__":
