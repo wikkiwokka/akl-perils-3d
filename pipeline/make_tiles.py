@@ -1,10 +1,12 @@
 """Build the PMTiles archive with tippecanoe.
 
-One archive, up to three named layers:
+One archive, up to four named layers:
   buildings — polygons with height/risk attributes (z11–z16)
   flood     — merged hazard polygons/lines (z10–z16)
   change    — AlphaEarth change polygons inside flood zones (z10–z16),
               included only if pipeline.alphaearth_flood_join has been run.
+  canopy    — gridded LiDAR canopy cells (z10–z16), included only if
+              pipeline.derive_canopy has been run.
 
 tippecanoe must be on PATH (built from source — see README).
 """
@@ -14,6 +16,7 @@ import subprocess
 
 from pipeline import config as C
 from pipeline.alphaearth_flood_join import CHANGE_FLOOD_GEOJSONL
+from pipeline.derive_canopy import CANOPY_GEOJSONL
 from pipeline.util import die, log
 
 
@@ -46,7 +49,15 @@ def main() -> None:
         log(f"Including change layer: {CHANGE_FLOOD_GEOJSONL.name}")
     else:
         log("No change layer found (run 'make change' to add it) — "
-            "building buildings + flood only.")
+            "building without it.")
+
+    # The canopy layer is likewise optional: it exists after 'make canopy'.
+    if CANOPY_GEOJSONL.exists() and CANOPY_GEOJSONL.stat().st_size > 0:
+        cmd += ["-L", f"canopy:{CANOPY_GEOJSONL}"]
+        log(f"Including canopy layer: {CANOPY_GEOJSONL.name}")
+    else:
+        log("No canopy layer found (run 'make canopy' to add it) — "
+            "building without it.")
 
     log(" ".join(cmd))
     subprocess.run(cmd, check=True)

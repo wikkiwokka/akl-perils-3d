@@ -27,6 +27,17 @@ window.AKL = (() => {
     change_fill: "#f08a5d",
   };
 
+  // Canopy cover ramp (sequential green: paler = sparse, deeper = dense cover).
+  // Keyed on canopy_pct so denser cells read darker; height comes separately
+  // from canopy_height_m so the extrusion shows actual vegetation height.
+  const CANOPY_COLOR = [
+    "interpolate", ["linear"], ["coalesce", ["get", "canopy_pct"], 0],
+    10, "#c6e0a8",
+    40, "#7cb342",
+    70, "#386c1f",
+    100, "#1b3d0c",
+  ];
+
   const HEIGHT_COLOR = [
     "interpolate", ["linear"], ["coalesce", ["get", "height_m"], 3],
     3, COLORS.sand,
@@ -92,6 +103,7 @@ window.AKL = (() => {
         addSatelliteLayer();
         addFloodLayers({ source: "akl", sourceLayer: "flood" });
         addChangeLayer({ source: "akl", sourceLayer: "change" });
+        addCanopyLayer({ source: "akl", sourceLayer: "canopy" });
         addBuildingLayer({ source: "akl", sourceLayer: "buildings" });
       } else if (opts.mode === "geojson") {
         map.addSource("flood-geo", { type: "geojson", data: opts.flood });
@@ -160,6 +172,27 @@ window.AKL = (() => {
       source, ...sl,
       layout: { visibility: "none" },
       paint: { "line-color": COLORS.change_line, "line-width": 1.2, "line-opacity": 0.9 },
+    });
+  }
+
+  // Gridded canopy from LiDAR. A 3D green surface extruded by canopy_height_m
+  // and coloured by canopy_pct (cover density), sitting among the buildings.
+  // Hidden by default. Safe to add when the 'canopy' source-layer is absent
+  // (no 'make canopy' yet) — it just renders nothing. Rendered as extrusions
+  // like the buildings so the two read as one 3D scene.
+  function addCanopyLayer({ source, sourceLayer }) {
+    const sl = sourceLayer ? { "source-layer": sourceLayer } : {};
+    map.addLayer({
+      id: "canopy",
+      type: "fill-extrusion",
+      source, ...sl,
+      layout: { visibility: "none" },
+      paint: {
+        "fill-extrusion-color": CANOPY_COLOR,
+        "fill-extrusion-height": ["coalesce", ["get", "canopy_height_m"], 0],
+        "fill-extrusion-base": 0,
+        "fill-extrusion-opacity": 0.85,
+      },
     });
   }
 
@@ -307,6 +340,13 @@ window.AKL = (() => {
         ["change-fill", "change-outline"].forEach((id) => {
           if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", vis);
         });
+      });
+
+    const canopyToggle = document.getElementById("toggle-canopy");
+    if (canopyToggle)
+      canopyToggle.addEventListener("change", (e) => {
+        const vis = e.target.checked ? "visible" : "none";
+        if (map.getLayer("canopy")) map.setLayoutProperty("canopy", "visibility", vis);
       });
 
     const tilt = document.getElementById("tilt");

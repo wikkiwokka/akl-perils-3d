@@ -6,7 +6,7 @@ PY = uv run python
 # 'change' is intentionally NOT in .PHONY's default 'all' chain: it needs Earth
 # Engine auth and is run on its own (make change) once, then 'make tiles' picks
 # up its output automatically.
-.PHONY: all fetch footprints elevation flood heights intersect change tiles clean doctor serve
+.PHONY: all fetch footprints elevation flood heights intersect change canopy tiles clean doctor serve
 
 all: fetch heights intersect tiles
 	@echo "Done. Open docs/index.html via 'make serve' or push to GitHub Pages."
@@ -37,6 +37,13 @@ change:
 		--threshold 0.30 --out data/interim/change.geojson
 	$(PY) -m pipeline.alphaearth_flood_join --change data/interim/change.geojson
 	@echo "Change layer ready. Run 'make tiles' to include it on the map."
+
+# Gridded canopy from LiDAR (reuses the elevation tiles already fetched). No
+# external auth needed. Writes data/processed/canopy.geojsonl, then re-run
+# 'make tiles' to fold the 'canopy' layer into the PMTiles archive.
+canopy:
+	$(PY) -m pipeline.derive_canopy
+	@echo "Canopy layer ready. Run 'make tiles' to include it on the map."
 
 tiles:
 	$(PY) -m pipeline.make_tiles

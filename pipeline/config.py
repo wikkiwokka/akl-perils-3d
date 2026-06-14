@@ -119,6 +119,19 @@ BUILDINGS_GEOJSONL = PROCESSED / "buildings_final.geojsonl"
 FLOOD_MERGED_GEOJSONL = PROCESSED / "flood_layers.geojsonl"
 
 # ---------------------------------------------------------------------------
+# Canopy layer (derive_canopy.py) — gridded vegetation from LiDAR nDSM
+# ---------------------------------------------------------------------------
+CANOPY_CELL_M = 25.0            # grid cell size in metres (tune for detail vs tile size)
+CANOPY_MIN_HEIGHT_M = 5.0       # nDSM at/above this counts as canopy (drops shrubs/garden trees)
+CANOPY_MAX_HEIGHT_M = 40.0      # nDSM above this is treated as artefact, not canopy
+CANOPY_MIN_COVER_PCT = 50.0     # only keep cells at least this % under canopy (drops lone trees)
+CANOPY_FOOTPRINT_BUFFER_M = 2.0 # buffer on building footprints when masking them out
+CANOPY_MIN_CELL_PIXELS = 30     # ignore grid cells with fewer valid ground pixels
+
+CANOPY_PARQUET = PROCESSED / "canopy.parquet"
+CANOPY_GEOJSONL = PROCESSED / "canopy.geojsonl"
+
+# ---------------------------------------------------------------------------
 # Tiles
 # ---------------------------------------------------------------------------
 PMTILES_OUT = TILES / "akl.pmtiles"
